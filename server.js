@@ -17,13 +17,14 @@ app.post('/save-registration', async (req, res) => {
     console.log("Stared the registraction");
     let response = {};
     try {
-        const request = req.body;
+        registration = req.body;
         const connection = await databaseConnection.dbConnection();
-        const executeQuery = await connection.query(querysIs.saveRegistration, [request.emailId, request.firstName, request.lastName, request.phoneNumber, request.password, request.confirmPassword]);
+        const executeQuery = await connection.query(querysIs.saveRegistration, [registration.emailId, registration.firstName, registration.lastName, registration.phoneNumber, registration.password, registration.confirmPassword,registration.accessLevel]);
         let encodeData = encodeDecode.base64Converter(executeQuery.rows);
         //SEND MAIL START
+        if(registration.accessLevel==1){
         const transporter = nodeMailer.createTransport({
-            host: process.env.SMPT_HOST,
+            host: 'smtp.gmail.com',
             port: '587',
             service: 'gmail',
             auth: {
@@ -38,6 +39,7 @@ app.post('/save-registration', async (req, res) => {
             html: 'Could you please provied admin access',
         };
         await transporter.sendMail(mailOptions);
+    }
         //SENT MAIL END
         response.message = "Successfully registrationed";
         response.status = true;
@@ -81,13 +83,14 @@ app.post('/validate-resgistratation-login-user', async (req, res) => {
 
 });
 class registration {
-    constructor(emailId, firstName, lastName, password, phoneNumber, confirmPassword) {
+    constructor(emailId, firstName, lastName, password, phoneNumber, confirmPassword,accessLevel) {
         this.emailId = emailId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
         this.phoneNumber = phoneNumber;
         this.confirmPassword = confirmPassword;
+        this.accessLevel = accessLevel;
     }
 }
 
@@ -191,6 +194,7 @@ class bookingDetails {
     }
 }
 
+
 app.post('/sendMail', async (req)=>{
     const transporter = nodeMailer.createTransport({
         host: 'smtp.gmail.com',
@@ -212,6 +216,27 @@ app.post('/sendMail', async (req)=>{
     // console.log(transporter);
     await transporter.sendMail(mailOptions);
     
+})
+
+app.get('/fetch-registraction-details', async (req,res)=>{
+    console.log("Stared fetch registration details");
+    let response = {};
+    try{
+        let connection = await databaseConnection.dbConnection();
+        const executedQuery = await connection.query(querysIs.featchRegistratationDetails);
+        let result = encodeDecode.base64Converter(executedQuery.rows);
+        response.message = "Successfully fetch details"
+        response.status = true;
+        response.data = result;
+        console.log("Successfully completed");
+        res.send(response);
+    }catch(err){
+        console.error(err.message);
+        response.message = err.message;
+        response.status = false;
+        response.data = "";
+        res.send(response)
+    }
 })
 
 app.use("/api/v1/students", studentRouter)
