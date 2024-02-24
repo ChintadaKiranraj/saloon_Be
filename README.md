@@ -20,3 +20,15 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.registration
     OWNER to postgres;
+
+
+Bokking Details:
+==================================
+
+CREATE TABLE public.booking_details (
+    id SERIAL PRIMARY KEY NOT NULL,
+	name VARCHAR(255),
+	date DATE,
+	time TIMESTAMP WITHOUT TIME ZONE,
+	status VARCHAR(255)
+)
