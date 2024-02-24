@@ -1,7 +1,6 @@
 function base64Converter(object){
     let jsonObject = JSON.stringify(object);
     let base64ConvertValue = Buffer.from(jsonObject).toString("base64");
-    console.log(base64ConvertValue);
     return base64ConvertValue;
 }
 
