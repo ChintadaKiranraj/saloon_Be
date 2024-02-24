@@ -1,6 +1,18 @@
 const db = require("../../DataBase");
 const studentQuarries = require("./studentsql");
 
+// const db = require("../../DataBase");
+// const studentQuarries = require("./studentsql");
+const express = require('express');
+const app = express();
+app.get('/login', (req, res) => {
+    let loginRequest = req.body();
+    loginRequest.userName();
+    loginRequest.userPassword();
+
+    res.send('hello world')
+  })
+
 const getStudents = (req, res) => {
   db.query(studentQuarries.getStudentsList, (error, results) => {
     if (error) throw error;
