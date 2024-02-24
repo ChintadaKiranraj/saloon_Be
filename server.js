@@ -126,12 +126,37 @@ app.put('/update-booking-details', async (req,res)=>{
     response.message = err.message;
         response.status = false;
         response.data = "";
-        res.send(response);
-    
+        res.send(response);   
 }
-    // if()
-
 });
+
+app.delete('/detele-booking-users', async (req,res)=>{
+    let response = {};
+    let arr = new Array();
+    try{
+    let request = req.body;
+    const connection = await databaseConnection.dbConnection();
+    bookingDetails = await connection.query(querysIs.deleteBookingDetails,[request.id]);
+    if(bookingDetails.rows.length != 0){
+        let deletedDetails = encodeDecode.base64Converter(bookingDetails.rows);
+        response.message = "Sucessfully deleted";
+        response.status = true;
+        response.data = deletedDetails;
+        res.send(response);
+
+    }else{
+        response.message = "unable to deleted";
+        response.status = false;
+        response.data = "";
+        res.send(response);
+    }
+}catch(err){
+    response.message = err.message;
+    response.status = false;
+    response.data = "";
+    res.send(response);
+}
+})
 
 class bookingDetails {
     constructor(id, name, date, time, status) {
@@ -142,55 +167,6 @@ class bookingDetails {
         this.status = status;
     }
 }
-
-// convert into base64Converter:
-// function base64Converter(object){
-//     let jsonObject = JSON.stringify(object);
-//     let base64ConvertValue = Buffer.from(jsonObject).toString("base64");
-//     console.log(base64ConvertValue);
-//     return base64ConvertValue;
-// }
-
-
-// decode base64Converter
-// function base64ToJson(base64String){
-//     const convertJson = Buffer.from(base64String, "base64").toString();
-//     return JSON.parse(convertJson);
-// }
-
-// app.get('/', (request, response) => {
-//     response.send("Hello raj")
-// })
-
-// app.get('/fetch-login-details', async (req,res)=>{
-//     console.log("statred fetch login details");
-//     try{
-//     const result1 = await databaseConnection.dbConnection();
-//     const result = await result1.query(querysIs.fetchLoginDetails);
-//     console.log(result.rows);
-//     const arrayData = new Array();
-//     result.rows.forEach(function(e){
-//         arrayData.push(e);
-//     })
-//     res.send(arrayData)
-//     console.log("Successfully completed fetch details");
-//     }catch(err){
-//         console.log(err);
-//     }
-// });
-
-// app.post('/upload-admin-details', async (req,res) =>{
-//     try{
-//     let response = req.body;
-//     const connection = await databaseConnection.dbConnection();
-//     // await connection.query('INSERT INTO admin(name,number) VALUES(\'manikanta1\',\'79972615\')');
-//    let responseForDatabase = await connection.query(querysIs.insertInLogin,[response.name,response.number]);
-//     res.send(responseForDatabase.rows)
-//     }catch(err){
-//         console.log(err);
-//     }
-
-// });
 
 app.use("/api/v1/students", studentRouter)
 

@@ -7,6 +7,7 @@ const validateLoginUser = "SELECT * FROM registration WHERE email_id = $1 AND pa
 const fetchBookingDetails = "select * from booking_details";
 const saveBookingDetails = "INSERT INTO booking_details (name,date,time,status) VALUES($1, $2, $3, $4) RETURNING *";
 const updateBookingDetails = "UPDATE booking_details SET status = $1 WHERE id =$2 RETURNING *"; 
+const deleteBookingDetails = "DELETE FROM booking_details WHERE id in ($1) RETURNING *";
 module.exports = {
   getStudentsList,
   getStudentById,
@@ -17,4 +18,5 @@ module.exports = {
   fetchBookingDetails,
   saveBookingDetails,
   updateBookingDetails,
+  deleteBookingDetails,
 };
