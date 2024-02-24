@@ -8,7 +8,6 @@ const studentRouter = require("./src/students/routes")
 const encodeDecode = require('./src/students/EncodeDecode')
 const app = express()
 const PORT = 4001;
-
 app.use(express.json());
 app.listen(PORT, () => console.log(`app is listening at ${PORT}`))
 
