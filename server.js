@@ -27,6 +27,24 @@ async function queryExecutionResult(query, varibles) {
     return resultData;
 
 }
+
+function successCase(data) {
+    let response = {};
+    let encodeData = encodeDecode.base64Converter(data);
+    response.message = "Successfully";
+    response.status = true;
+    response.data = encodeData;
+    return response;
+}
+
+function exceptionCase(messagre){
+    let errorResult = {};
+    errorResult.message = messagre;
+    errorResult.status = false;
+    errorResult.data = "";
+    return errorResult;
+
+}
 //Registratation Rest Api's
 
 app.post('/save-registration', async (req, res) => {
@@ -36,7 +54,6 @@ app.post('/save-registration', async (req, res) => {
         registration = req.body;
         let payload = [registration.emailId, registration.firstName, registration.lastName, registration.phoneNumber, registration.password, registration.confirmPassword, registration.accessLevel];
         const executeQuery = await queryExecutionResult(querysIs.saveRegistration, payload)
-        let encodeData = encodeDecode.base64Converter(executeQuery);
         //SEND MAIL START
         if (registration.accessLevel == 1) {
             const transporter = nodeMailer.createTransport({
@@ -57,17 +74,12 @@ app.post('/save-registration', async (req, res) => {
             await transporter.sendMail(mailOptions);
         }
         //SENT MAIL END
-        response.message = "Successfully registrationed";
-        response.status = true;
-        response.data = encodeData;
+        response = successCase(executeQuery)
         console.log("Successfully completed registraction");
         res.send(response);
     } catch (err) {
         console.error(err.message);
-        response.message = "Faild to registration";
-        response.status = false;
-        response.data = "";
-        response.message = err.message;
+        response = exceptionCase(err.message);
         res.send(response);
     }
 });
@@ -80,27 +92,22 @@ app.post('/validate-resgistratation-login-user', async (req, res) => {
         let payload = [registration.emailId, registration.password];
         const executeQuery = await queryExecutionResult(querysIs.validateLoginUser, payload)
         if (executeQuery.length != 0) {
-            let ss = encodeDecode.base64Converter(executeQuery)
-            response.message = "Valide user details";
-            response.status = true;
-            response.data = ss;
+            response = successCase(executeQuery);
             response.accessLevel = executeQuery[0].access_level
             console.log("Completed Validate Resgistratation Login User :");
+            res.send(response);
         } else {
-            response.message = "User not found";
-            response.status = false;
-            response.data = "";
+            response = exceptionCase("User not found");
             console.log("Something went to rong!. Validate Resgistratation Login User :");
             res.status(400);
+            res.send(response);
         }
     } catch (err) {
         console.log(err.message);
-        response.message = err.message;
-        response.status = false;
-        response.data = "";
+        response = exceptionCase(err.message);
         res.status(400);
+        res.send(response);
     }
-    res.send(response);
 
 });
 class registration {
@@ -117,43 +124,44 @@ class registration {
 
 app.post('/save-booking-details', async (req, res) => {
     console.log("Started save booking details API");
-    let response = {};
+    let response;
     try {
         bookingDetails = req.body;
         let payload = [bookingDetails.name, bookingDetails.date, bookingDetails.time, bookingDetails.status];
         const executedQuerysIs = await queryExecutionResult(querysIs.saveBookingDetails, payload)
         if (executedQuerysIs.length != 0) {
-            let queryResult = encodeDecode.base64Converter(executedQuerysIs[0]);
-            response.message = "Successfully upload booking details";
-            response.status = true;
-            response.data = queryResult;
+            response = successCase(queryResult);
             console.log("Completed save booking details API");
         } else {
-            response.message = "unable to save the connection";
-            response.status = false;
-            response.data = "";
+            console.log("unable save the connection")
+            response = exceptionCase("unable to save the connection");
             res.status(400);
+            res.send(response);
         }
     } catch (err) {
-        response.message = err.message;
-        response.status = false;
-        response.data = "";
+        response = exceptionCase(err.message);
+        console.log(err.message);
         res.status(400);
+        res.send(response);
     }
-    res.send(response);
+    
 });
 
 app.get('/fetch-booking-details', async (req, res) => {
     console.log("Stared featch booking details");
+    let response;
     try {
         bookingDetails = await queryExecutionResult(querysIs.fetchBookingDetails)
-        let response = encodeDecode.base64Converter(bookingDetails);
+        // let response = encodeDecode.base64Converter(bookingDetails);
+        response = successCase(bookingDetails);
         console.log("Successfully Completed")
         res.send(response);
+        // res.send(response);
     } catch (err) {
         console.error(err.message);
+        response = exceptionCase(err.message);
         res.status(400);
-        res.send(err.message);
+        res.send(response);
     }
 });
 
@@ -164,46 +172,35 @@ app.put('/update-booking-details', async (req, res) => {
         let payload = [bookingDetails.status, bookingDetails.id];
         const executeQuery = await queryExecutionResult(querysIs.updateBookingDetails, payload)
         if (executeQuery.length == 0) {
-            response.message = "unbale to update the status";
-            response.status = false;
-            response.data = "";
+            response = exceptionCase("unbale to update the status");
             res.send(response);
         }
-        response.message = "Sucessfully update the user";
-        response.status = true;
-        response.data = encodeDecode.base64Converter(executeQuery);
+        response = successCase(executeQuery);
         res.send(response);
 
     } catch (err) {
-        response.message = err.message;
-        response.status = false;
-        response.data = "";
+        response = exceptionCase(err.message);
         res.send(response);
     }
 });
 
 app.delete('/detele-booking-users', async (req, res) => {
-    let response = {};
+    let response;
     try {
         let request = req.body;
         bookingDetails = await queryExecutionResult(querysIs.deleteBookingDetails, [request.id])
         if (bookingDetails.length != 0) {
-            let deletedDetails = encodeDecode.base64Converter(bookingDetails);
-            response.message = "Sucessfully deleted";
-            response.status = true;
-            response.data = deletedDetails;
+            response = successCase(bookingDetails);
             res.send(response);
 
         } else {
-            response.message = "unable to deleted";
-            response.status = false;
-            response.data = "";
+            response = exceptionCase("unable to deleted");
+            res.status(400);
             res.send(response);
         }
     } catch (err) {
-        response.message = err.message;
-        response.status = false;
-        response.data = "";
+        response = exceptionCase(err.message);
+        res.status(400);
         res.send(response);
     }
 });
@@ -240,20 +237,16 @@ app.post('/sendMail', async (req) => {
 
 app.get('/fetch-registraction-details', async (req, res) => {
     console.log("Stared fetch registration details");
-    let response = {};
+    let response;
     try {
         const executedQuery = await queryExecutionResult(querysIs.featchRegistratationDetails);
-        let result = encodeDecode.base64Converter(executedQuery);
-        response.message = "Successfully fetch details"
-        response.status = true;
-        response.data = result;
+        response = successCase(executedQuery);
         console.log("Successfully completed");
         res.send(response);
     } catch (err) {
         console.error(err.message);
-        response.message = err.message;
-        response.status = false;
-        response.data = "";
+        response = exceptionCase(err.message);
+        res.status(400);
         res.send(response)
     }
 });
