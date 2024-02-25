@@ -7,6 +7,7 @@ const querysIs = require('./src/students/studentsql')
 const studentRouter = require("./src/students/routes")
 const encodeDecode = require('./src/students/EncodeDecode')
 // var cors = require('cors')
+require('dotenv').config()
 const app = express()
 const cors = require("cors");
 app.use(cors({
@@ -39,17 +40,17 @@ app.post('/save-registration', async (req, res) => {
         //SEND MAIL START
         if (registration.accessLevel == 1) {
             const transporter = nodeMailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: '587',
-                service: 'gmail',
+                host: process.env.SMPT_HOST,
+                port: process.env.SMPT_PORT,
+                service: process.env.SMPT_SERVICE,
                 auth: {
-                    user: 'yogendramanikanta9951@gmail.com',
-                    pass: 'xwrxqbvgldqegtll',
+                    user: process.env.AUTH_USER,
+                    pass: process.env.AUTH_PASS,
                 },
             });
             const mailOptions = {
                 from: request.emailId,
-                to: 'yogendramanikanta9951@gmail.com',
+                to: process.env.MAIL_TO_USER,
                 subject: 'Requesting for admin access',
                 html: 'Could you please provied admin access',
             };
@@ -72,7 +73,7 @@ app.post('/save-registration', async (req, res) => {
 });
 
 app.post('/validate-resgistratation-login-user', async (req, res) => {
-    console.log("testing")
+    console.log("started Validate Resgistratation Login User :");
     let response = {};
     try {
         registration = req.body;
@@ -84,13 +85,16 @@ app.post('/validate-resgistratation-login-user', async (req, res) => {
             response.status = true;
             response.data = ss;
             response.accessLevel = executeQuery[0].access_level
+            console.log("Completed Validate Resgistratation Login User :");
         } else {
             response.message = "User not found";
             response.status = false;
             response.data = "";
+            console.log("Something went to rong!. Validate Resgistratation Login User :");
             res.status(400);
         }
     } catch (err) {
+        console.log(err.message);
         response.message = err.message;
         response.status = false;
         response.data = "";
@@ -216,18 +220,18 @@ class bookingDetails {
 
 app.post('/sendMail', async (req) => {
     const transporter = nodeMailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: '587',
-        service: 'gmail',
+        host: process.env.SMPT_HOST,
+        port: process.env.SMPT_PORT,
+        service: process.env.SMPT_SERVICE,
         auth: {
-            user: 'yogendramanikanta9951@gmail.com',
-            pass: 'xwrxqbvgldqegtll',
+            user: process.env.AUTH_USER,
+            pass: process.env.AUTH_PASS,
         },
     });
 
     const mailOptions = {
         from: 'yogendramanikanta9951@gmail.com',
-        to: 'kiranrajchintada302@gmail.com',
+        to: process.env.MAIL_TO_USER,
         subject: 'sample test',
         html: '',
     };
