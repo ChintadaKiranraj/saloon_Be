@@ -23,7 +23,7 @@ async function queryExecutionResult(query, varibles) {
     const connect = await databaseConnection.dbConnection();
     const result = await connect.query(query, varibles);
     const resultData = result.rows;
-    connect.close;
+    connect.release();
     return resultData;
 
 }
@@ -130,8 +130,9 @@ app.post('/save-booking-details', async (req, res) => {
         let payload = [bookingDetails.name, bookingDetails.date, bookingDetails.time, bookingDetails.status];
         const executedQuerysIs = await queryExecutionResult(querysIs.saveBookingDetails, payload)
         if (executedQuerysIs.length != 0) {
-            response = successCase(queryResult);
+            response = successCase(executedQuerysIs);
             console.log("Completed save booking details API");
+            res.send(response);
         } else {
             console.log("unable save the connection")
             response = exceptionCase("unable to save the connection");
@@ -152,6 +153,7 @@ app.get('/fetch-booking-details', async (req, res) => {
     let response;
     try {
         bookingDetails = await queryExecutionResult(querysIs.fetchBookingDetails)
+        console.log("response" + bookingDetails);
         // let response = encodeDecode.base64Converter(bookingDetails);
         response = successCase(bookingDetails);
         console.log("Successfully Completed")
