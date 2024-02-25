@@ -83,7 +83,7 @@ app.post('/validate-resgistratation-login-user', async (req, res) => {
             response.message = "Valide user details";
             response.status = true;
             response.data = ss;
-            response.accessLevel = executeQuery.access_level
+            response.accessLevel = executeQuery[0].access_level
         } else {
             response.message = "User not found";
             response.status = false;
