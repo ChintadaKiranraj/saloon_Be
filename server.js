@@ -6,7 +6,14 @@ const databaseConnection = require('./DataBase')
 const querysIs = require('./src/students/studentsql')
 const studentRouter = require("./src/students/routes")
 const encodeDecode = require('./src/students/EncodeDecode')
+// var cors = require('cors')
 const app = express()
+const cors = require("cors");
+   app.use(cors({
+   origin: 'http://localhost:3000',
+   optionsSuccessStatus: 200,
+   credentials: true,
+}));
 const PORT = 4001;
 app.use(express.json());
 app.listen(PORT, () => console.log(`app is listening at ${PORT}`))
@@ -57,6 +64,7 @@ app.post('/save-registration', async (req, res) => {
 });
 
 app.post('/validate-resgistratation-login-user', async (req, res) => {
+    console.log("testing")
     let response = {};
     try {
         registration = req.body;
@@ -69,15 +77,18 @@ app.post('/validate-resgistratation-login-user', async (req, res) => {
             response.message = "Valide user details";
             response.status = true;
             response.data = ss;
+            response.accessLevel = executeQuery.rows[0].access_level
         } else {
             response.message = "User not found";
             response.status = false;
             response.data = "";
+            res.status(400);
         }
     } catch (err) {
         response.message = err.message;
         response.status = false;
         response.data = "";
+        res.status(400);
     }
     res.send(response);
 
