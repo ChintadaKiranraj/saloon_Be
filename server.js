@@ -1,6 +1,5 @@
 const { response } = require('express');
 const nodeMailer = require("nodemailer");
-const { sendEmail } = require('./src/students/sendMail')
 const express = require('express')
 const databaseConnection = require('./DataBase')
 const querysIs = require('./src/students/studentsql')
