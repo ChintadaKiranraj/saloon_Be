@@ -7,8 +7,11 @@ const port = 4001; // Choose your desired port
 
 // Use body-parser middleware to parse JSON requests
 app.use(express.json());
+app.use(bodyParser.json({ limit: "1000mb" }));
+app.use(bodyParser.urlencoded({ limit: "1000mb", extended: true }));
 app.use(bodyParser.json());
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -25,6 +28,79 @@ const pool = new Pool({
   port: 5432,
 });
 
+app.post("/api/login", async (req, res) => {
+  try {
+    console.log("inside the login");
+    const { email, password } = req.body;
+    console.log("email", email);
+    console.log("password", password);
+
+    // Check if the user exists in the database
+    const userQuery = await pool.query("SELECT * FROM Users WHERE email = $1", [
+      email,
+    ]);
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      // User does not exist
+      res.status(404).json({
+        status: false,
+        message: "User not found.",
+        code: 404,
+      });
+      return;
+    }
+
+    // Validate the password
+    if (password !== user.password) {
+      // Incorrect password
+      res.status(401).json({
+        status: false,
+        message: "Incorrect password.",
+      });
+      return;
+    }
+
+    // User exists and password is correct
+    // res.status(200).json({
+    //   success: true,
+    //   user: user,
+    //   message: "User logged in successfully.",
+    //   jwt_token:
+
+    // });
+    // Generate JWT token
+    const token = jwt.sign(
+      { ...user, password: "", confirmpassword: "", profilephoto: "" },
+      "root"
+    );
+
+    // Convert token to base64
+    // const base64Token = Buffer.from(token).toString("base64");
+    // console.log("token", token)
+    const base64Token = token;
+
+    res.status(200).json({
+      status: true,
+      user: user,
+      message: "User logged in successfully.",
+      jwt_token: base64Token,
+      roles: ["Shop Owner"],
+    });
+
+    // res.status(200).json({
+    //   status: "success",
+    //   roles: ["Admin", "User", "SystemAdmin"],
+    //   message: "User logged in successfully.",
+    //   code :200,
+    //   jwt_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlcyI6WyJBZG1pbiIsIlVzZXIiLCJTeXN0ZW1BZG1pbiJdLCJmdWxsX25hbWUiOiJLaXJhbiByYWoiLCJlbWFpbCI6ImtpcmFucmFqLmNoaW50YWRhQGVwc29mdGluYy5jb20iLCJ1c2VySWQiOjEsInJvbGUiOiJBZG1pbiIsInVzZXJfdHlwZSI6IlNob3BPd25lciJ9.whJduNoaqcM34DRELRFR3uoc5kW0Z8c5adRxek_DErI"
+
+    // });
+  } catch (error) {
+    console.error("Error during user login:", error);
+    res.status(500).json({ success: false, message: "Error logging in user." });
+  }
+});
 // Endpoint for user registration
 app.post("/api/registerUser", async (req, res) => {
   try {
@@ -97,6 +173,7 @@ app.post(
       console.log("Barber application submitted successfully.");
       res.status(201).json({
         success: true,
+        code: 201,
         message: "Barber application submitted successfully.",
         data: newApplication,
       });
@@ -107,13 +184,15 @@ app.post(
         res.status(400).json({
           success: false,
           message: "Oops.....! You have already applied for this job.",
-          errorCode: 400,
+          code: 400,
         });
       } else {
         console.error("Error during user registration:", error);
-        res
-          .status(500)
-          .json({ success: false, message: "Error registering user." });
+        res.status(500).json({
+          success: false,
+          message: "Error registering user due to " + error,
+          code: 500,
+        });
       }
     }
   }
@@ -126,23 +205,21 @@ app.post("/api/barber-shop-registration/:ownerId", async (req, res) => {
   try {
     const { ownerId } = req.params;
 
-    const { location, shopName } = req.body;
-
-    // Validate input data if needed
+    const { location, shopName, profilePhoto } = req.body;
 
     // Example query to insert user data into the Users table
     const result = await pool.query(
-      "INSERT INTO Shops (shopName, location,ownerid) VALUES ($1, $2, $3) RETURNING *",
-      [shopName, location, ownerId]
+      "INSERT INTO Shops (shopName, location,ownerid,profilephoto) VALUES ($1, $2, $3,$4) RETURNING *",
+      [shopName, location, ownerId, profilePhoto]
     );
 
     const registeredShopData = result.rows[0];
 
-    res.status(201).json({
-      success: true,
+    res.status(200).json({
+      status: true,
       message: "Shop registered successfully.",
       data: registeredShopData,
-      code: 201,
+      code: 200,
     });
   } catch (error) {
     console.error("Error during Shop registration:", error);
@@ -192,12 +269,18 @@ app.get("/api/shop-name-availability/:shopName/:ownerId", async (req, res) => {
   }
 });
 app.post("/api/saloon-booking/:userId/:shopId/:ownerId", async (req, res) => {
-  console.log("inside the barber shop registration");
+  console.log("inside the salon  booking");
   console.log(req.body);
 
   try {
     const { userId, shopId, ownerId } = req.params;
     const { shopName, location, datetime } = req.body;
+
+    console.log("shopName", shopName);
+    console.log("location", location);
+    console.log("datetime", datetime);
+    console.log("userId", userId);
+    console.log("shopId", shopId);
     console.log("ownerId", ownerId);
     const result = await pool.query(
       "INSERT INTO Bookings (userid, location,shopname,barberid,bookingdatetime,status,shopid,ownerid) VALUES ($1, $2, $3,$4,$5,$6,$7,$8) RETURNING *",
@@ -206,8 +289,9 @@ app.post("/api/saloon-booking/:userId/:shopId/:ownerId", async (req, res) => {
 
     const newAppointment = result.rows;
 
-    res.status(201).json({
-      success: true,
+    res.status(200).json({
+      status: true,
+      code: 200,
       message:
         "Appointment Locked In! Your journey to beauty begins soon. See you at the salon!.",
       data: newAppointment,
@@ -241,13 +325,15 @@ app.post("/api/saloon-booking/:userId/:shopId/:ownerId", async (req, res) => {
 // });
 
 //api to get all the shops
-app.get("/api/get-all-shops", async (req, res) => {
+app.get("/api/get-all-shops/:ownerId", async (req, res) => {
+  const { ownerId } = req.params;
   try {
     console.log("inside the get all shops");
     const sqlQuery = `
     SELECT Shops.ShopID, Shops.ShopName, Shops.Location, Shops.ProfilePhoto, Users.FirstName, Users.LastName,Users.PhoneNumber,Users.Email
     FROM Shops
     JOIN Users ON Shops.OwnerID = Users.UserID
+    where Shops.OwnerID = '${ownerId}'
   `;
     const result = await pool.query(sqlQuery);
 
@@ -270,7 +356,7 @@ app.get("/api/get-salon-servicess", async (req, res) => {
     const sqlQuery = `
     SELECT  *
     FROM SalonServices
-    LIMIT 6;
+    ;
 `;
     const result = await pool.query(sqlQuery);
 
@@ -278,6 +364,7 @@ app.get("/api/get-salon-servicess", async (req, res) => {
 
     res.status(200).json({
       success: true,
+      code: 200,
       message: "Fetched all salon servicess  successfully.",
       data,
     });
@@ -295,6 +382,7 @@ app.get("/api/shops-locations", async (req, res) => {
     SELECT DISTINCT Location
 FROM Shops;
   `;
+
     const result = await pool.query(sqlQuery);
 
     const shopsLocations = result.rows;
@@ -317,7 +405,7 @@ app.get("/api/shopname-by-location/:location/", async (req, res) => {
 
     console.log("inside the get all shops location");
     const sqlQuery = `
-    SELECT *
+    SELECT shopid,shopname,location,ownerid
 FROM Shops WHERE Location =  '${location}';`;
     const result = await pool.query(sqlQuery);
 
@@ -412,16 +500,20 @@ app.get("/api/get-all-users", async (req, res) => {
       .json({ success: false, message: "Error fetching all users" });
   }
 });
-app.get("/api/users-with-bookings", async (req, res) => {
+
+//get all booking based on shop ownerid
+app.get("/api/users-with-bookings/:ownerId", async (req, res) => {
   try {
     console.log("Fetching users with booked appointments");
-
+    const { ownerId } = req.params;
+    // Users.ProfilePhoto,
     const sqlQuery = `
-      SELECT Users.UserID, Users.FirstName, Users.LastName, Users.Email, Users.PhoneNumber, Users.ProfilePhoto, Users.UserType,
+      SELECT Users.UserID, Users.FirstName, Users.LastName, Users.Email, Users.PhoneNumber,Users.UserType,
              Bookings.BookingID, Bookings.Location, Bookings.ShopName, Bookings.BarberID, Bookings.ShopID, Bookings.OwnerID,
              Bookings.BookingDateTime, Bookings.Status
       FROM Users
-      INNER JOIN Bookings ON Users.UserID = Bookings.UserID;
+      INNER JOIN Bookings ON Users.UserID = Bookings.UserID
+      WHERE Bookings.OwnerID = ${ownerId} AND Bookings.Status = 'pending';
     `;
 
     const result = await pool.query(sqlQuery);
@@ -494,6 +586,260 @@ app.get("/api/get-shops-by-location/:location", async (req, res) => {
     });
   }
 });
+app.get(
+  "/api/get-barbers-by-shoownerId/:ownerid/:status/:applicationId",
+  async (req, res) => {
+    try {
+      console.log(
+        "Fetching  barbers by shop owner  and status and application id"
+      );
+      const { ownerid, status, applicationId } = req.params;
+
+      const sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    FROM Users u
+    JOIN BarberApplications ba ON u.UserID = ba.BarberID
+    WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid ='${applicationId}';
+    `;
+
+      const result = await pool.query(sqlQuery);
+      const data = result.rows;
+
+      res.status(200).json({
+        status: true,
+        message: "Fetched barbers list successfully based on the owner id.",
+        data,
+        code: 200,
+      });
+    } catch (error) {
+      console.error("Error during fetching barbersList  due to", error);
+      res.status(500).json({
+        status: false,
+        message: "Error during fetching barbersList  due to  " + error,
+        code: 500,
+      });
+    }
+  }
+);
+app.get("/api/get-barbers-by-shoownerId/:ownerid/:status", async (req, res) => {
+  try {
+    console.log("Fetching  barbers by shop owner id");
+    const { ownerid, status } = req.params;
+    const sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    FROM Users u
+    JOIN BarberApplications ba ON u.UserID = ba.BarberID
+    WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}';
+    `;
+    const sqlQuery2 = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    FROM Users u
+    JOIN BarberApplications ba ON u.UserID = ba.BarberID
+    WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid =='${status}';
+    `;
+
+    const result = await pool.query(sqlQuery);
+    const data = result.rows;
+
+    res.status(200).json({
+      status: true,
+      message: "Fetched barbers list successfully based on the owner id.",
+      data,
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Error during fetching barbersList  due to", error);
+    res.status(500).json({
+      status: false,
+      message: "Error during fetching barbersList  due to  " + error,
+      code: 500,
+    });
+  }
+});
+app.put("/api/update-shop/:shopId", async (req, res) => {
+  try {
+    console.log("Update Shop details");
+    const { shopId } = req.params;
+    const { profilePhoto, phoneNumber, location } = req.body;
+
+    const sqlQuery = `UPDATE Shops SET profilephoto = '${profilePhoto}', location = '${location}' WHERE ShopID = '${shopId}'`;
+
+    const quarry2 = `UPDATE Users SET phonenumber = '${phoneNumber}' WHERE userid = (SELECT ownerid FROM Shops WHERE shopid = '${shopId}')`;
+    const result = await pool.query(sqlQuery);
+    const result2 = await pool.query(quarry2);
+
+    res.status(200).json({
+      status: true,
+      message: "Shop data updated successfully.",
+
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed to update shop data due to ", error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to update  shop data due to  " + error,
+      code: 500,
+    });
+  }
+});
+app.get("/api/get-users-appointments/:userId", async (req, res) => {
+  try {
+    console.log("inside individual user appointments");
+    const { userId } = req.params;
+
+    const sqlQuery = `SELECT * FROM Bookings WHERE UserID = '${userId}'`;
+
+    const result = await pool.query(sqlQuery);
+    const data = result.rows;
+    res.status(200).json({
+      status: true,
+      data,
+      message: "Fetched user appointments successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed  to fetch user appointments due to ", error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch user appointments " + error,
+      code: 500,
+    });
+  }
+});
+app.get("/api/delete-barber-application/:applicationid", async (req, res) => {
+  try {
+    console.log("inside delete barber  application");
+    const { applicationid } = req.params;
+
+    const sqlQuery = `DELETE  FROM barberapplications WHERE applicationid = '${applicationid}'`;
+
+    const result = await pool.query(sqlQuery);
+    const data = result.rows;
+    res.status(200).json({
+      status: true,
+      data,
+      message: "Deleted application successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed  to delete user appointments due to ", error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch user appointments " + error,
+      code: 500,
+    });
+  }
+});
+app.put(
+  "/api/update-barber-application-status/:applicationId/:status",
+  async (req, res) => {
+    try {
+      console.log("inside update appointment");
+      const { applicationId, status } = req.params;
+
+      const sqlQuery = `UPDATE BarberApplications SET status = '${status}' WHERE applicationid = '${applicationId}'`;
+
+      const result = await pool.query(sqlQuery);
+      const data = result.rows[0];
+      res.status(200).json({
+        status: true,
+        data,
+        message: "Application Updated successfully successfully.",
+        code: 200,
+      });
+    } catch (error) {
+      console.error("Failed  to update application  status due to  ", error);
+      res.status(500).json({
+        status: false,
+        message: "Failed to update the application status due to " + error,
+        code: 500,
+      });
+    }
+  }
+);
+app.delete("/api/delete-shop/:shopId", async (req, res) => {
+  try {
+    console.log("inside  the delete shop");
+    const { shopId } = req.params;
+
+    const sqlQuery = `DELETE  FROM Shops WHERE shopid = '${shopId}'`;
+    const result = await pool.query(sqlQuery);
+    const data = result.rows[0];
+    res.status(200).json({
+      status: true,
+      data,
+      message: "Shop deleted successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed  to delete shop  status due to  ", error);
+    // Check if the error is due to foreign key constraint violation
+    if (error.constraint === "barberapplications_shopid_fkey") {
+      res.status(400).json({
+        message:
+          "If there are no appointments and no pending applications associated with your shop, you can proceed to delete it. Until then, we cannot proceed with the deletion of your shop.",
+        status: false,
+        code: 400,
+      });
+    } else
+      res.status(500).json({
+        status: false,
+        message: "Failed to delete  the shop   due to " + error,
+        code: 500,
+      });
+  }
+});
+
+app.put("/api/update-user-profile-photo/:userId",async(req,res)=>{
+  try {
+    console.log("inside  Update user  profile photo");
+    const { userId } = req.params;
+
+    const sqlQuery = `UPDATE Users SET ProfilePhoto = '${req.body.profilePhoto}' WHERE UserID = '${userId}'`;
+
+    const result = await pool.query(sqlQuery);
+    const data = result.rows[0];
+    console.log(data);
+    console.log("User profile photo updated successfully.")
+    res.status(200).json({
+      status: true,
+      data,
+      message: "Updated user profile photo successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed  Update user  profile photo due to  ", error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to Update user profile photo due to " + error,
+      code: 500,
+    });
+  }
+})
+app.get("/api/get-user-profile-photo/:userId",async(req,res)=>{
+  try {
+    console.log("inside  the get user profile photo");
+    const { userId } = req.params;
+
+    const sqlQuery = `SELECT ProfilePhoto FROM Users WHERE UserID = '${userId}'`;
+
+    const result = await pool.query(sqlQuery);
+    const data = result.rows[0];
+    res.status(200).json({
+      status: true,
+      data,
+      message: "Fetched user profile photo successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Failed  to fetch user profile photo due to  ", error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch user profile photo due to " + error,
+      code: 500,
+    });
+  }
+})
+
+
 
 // app.post('/api/barber-shop-registration', async (req, res) => {
 //   try {
