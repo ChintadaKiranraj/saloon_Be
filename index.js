@@ -587,19 +587,30 @@ app.get("/api/get-shops-by-location/:location", async (req, res) => {
   }
 });
 app.get(
-  "/api/get-barbers-by-shoownerId/:ownerid/:status/:applicationId",
+  "/api/get-barbers-by-shoownerId/:ownerid/:status/:applicationId/:userType",
   async (req, res) => {
     try {
       console.log(
         "Fetching  barbers by shop owner  and status and application id"
       );
-      const { ownerid, status, applicationId } = req.params;
+      const { ownerid, status, applicationId,userType } = req.params;
+      let  sqlQuery ="";
+if(userType === 'shopowner'){
 
-      const sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
-    FROM Users u
-    JOIN BarberApplications ba ON u.UserID = ba.BarberID
-    WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid ='${applicationId}';
-    `;
+   sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+  FROM Users u
+  JOIN BarberApplications ba ON u.UserID = ba.BarberID
+  WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid ='${applicationId}';
+  `;
+
+}else{
+  sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+  FROM Users u
+  JOIN BarberApplications ba ON u.UserID = ba.BarberID
+  WHERE ba.BarberID = ${ownerid} and ba.applicationid ='${applicationId}';
+  `;
+}
+     
 
       const result = await pool.query(sqlQuery);
       const data = result.rows;
@@ -620,27 +631,48 @@ app.get(
     }
   }
 );
-app.get("/api/get-barbers-by-shoownerId/:ownerid/:status", async (req, res) => {
+
+  app.get("/api/barbers-list/:ownerid/:status/:userType", async (req, res) => {
+
   try {
-    console.log("Fetching  barbers by shop owner id");
-    const { ownerid, status } = req.params;
-    const sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    console.log("Fetching  barbers by shop owner id or by barber id");
+  
+    const { ownerid, status ,userType} = req.params;
+    console.log(userType)
+
+
+    console.log("ownerid",ownerid)
+    console.log("status",status)
+    console.log("userType",userType)
+
+    let sqlQuery ="";
+
+    if(userType === 'shopowner'){
+      sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
     FROM Users u
     JOIN BarberApplications ba ON u.UserID = ba.BarberID
     WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}';
     `;
-    const sqlQuery2 = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    }else if(userType === "Barber"){
+      sqlQuery = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
     FROM Users u
     JOIN BarberApplications ba ON u.UserID = ba.BarberID
-    WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid =='${status}';
+    WHERE ba.BarberID = ${ownerid};
     `;
+    }
+     
+    // const sqlQuery2 = `SELECT u.UserID AS BarberID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePhoto,ba.Status,ba.Experience,ba.Description,ba.applicationid
+    // FROM Users u
+    // JOIN BarberApplications ba ON u.UserID = ba.BarberID
+    // WHERE ba.OwnerID = ${ownerid} AND ba.Status ='${status}' and ba.applicationid =='${status}';
+    // `;
 
     const result = await pool.query(sqlQuery);
     const data = result.rows;
 
     res.status(200).json({
       status: true,
-      message: "Fetched barbers list successfully based on the owner id.",
+      message: `Fetched barbers list successfully based on the ${userType} id`,
       data,
       code: 200,
     });
@@ -648,7 +680,7 @@ app.get("/api/get-barbers-by-shoownerId/:ownerid/:status", async (req, res) => {
     console.error("Error during fetching barbersList  due to", error);
     res.status(500).json({
       status: false,
-      message: "Error during fetching barbersList  due to  " + error,
+      message: `Error during fetching barbersList  due to   + ${error}`,
       code: 500,
     });
   }
